@@ -482,8 +482,7 @@ TEST (block_store, empty_bootstrap)
 	auto store = nano::make_store (logger, nano::unique_path (), nano::dev::constants);
 	ASSERT_TRUE (!store->init_error ());
 	auto transaction (store->tx_begin_read ());
-	auto begin (store->unchecked.begin (transaction));
-	auto end (store->unchecked.end ());
+	auto [begin, end] = store->unchecked.full_range (transaction);
 	ASSERT_EQ (end, begin);
 }
 
@@ -495,8 +494,7 @@ TEST (block_store, one_bootstrap)
 	auto block1 (std::make_shared<nano::send_block> (0, 1, 2, nano::keypair ().prv, 4, 5));
 	auto transaction (store->tx_begin_write ());
 	store->unchecked.put (transaction, block1->hash (), block1);
-	auto begin (store->unchecked.begin (transaction));
-	auto end (store->unchecked.end ());
+	auto [begin, end] = store->unchecked.full_range (transaction);
 	ASSERT_NE (end, begin);
 	auto hash1 (begin->first.key ());
 	ASSERT_EQ (block1->hash (), hash1);
@@ -930,32 +928,15 @@ TEST (block_store, DISABLED_change_dupsort) // Unchecked is no longer dupsort ta
 	ASSERT_NE (send1->hash (), send2->hash ());
 	store.unchecked.put (transaction, send1->hash (), send1);
 	store.unchecked.put (transaction, send1->hash (), send2);
-	{
-		auto iterator1 (store.unchecked.begin (transaction));
-		++iterator1;
-		ASSERT_EQ (store.unchecked.end (), iterator1);
-	}
 	ASSERT_EQ (0, mdb_drop (store.env.tx (transaction), store.unchecked_handle, 0));
 	mdb_dbi_close (store.env, store.unchecked_handle);
 	ASSERT_EQ (0, mdb_dbi_open (store.env.tx (transaction), "unchecked", MDB_CREATE | MDB_DUPSORT, &store.unchecked_handle));
 	store.unchecked.put (transaction, send1->hash (), send1);
 	store.unchecked.put (transaction, send1->hash (), send2);
-	{
-		auto iterator1 (store.unchecked.begin (transaction));
-		++iterator1;
-		ASSERT_EQ (store.unchecked.end (), iterator1);
-	}
 	ASSERT_EQ (0, mdb_drop (store.env.tx (transaction), store.unchecked_handle, 1));
 	ASSERT_EQ (0, mdb_dbi_open (store.env.tx (transaction), "unchecked", MDB_CREATE | MDB_DUPSORT, &store.unchecked_handle));
 	store.unchecked.put (transaction, send1->hash (), send1);
 	store.unchecked.put (transaction, send1->hash (), send2);
-	{
-		auto iterator1 (store.unchecked.begin (transaction));
-		++iterator1;
-		ASSERT_NE (store.unchecked.end (), iterator1);
-		++iterator1;
-		ASSERT_EQ (store.unchecked.end (), iterator1);
-	}
 }
 
 TEST (block_store, state_block)
