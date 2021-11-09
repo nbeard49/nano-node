@@ -44,10 +44,9 @@ TEST (unchecked_map, construction)
 	context context;
 }
 
-TEST (unchecked_map, add_one)
+TEST (unchecked_map, put_one)
 {
 	context context;
 	nano::unchecked_info info{ block (), nano::dev::genesis_key.pub, nano::seconds_since_epoch () };
-	nano::unchecked_key key{ info.block->previous (), info.block->hash () };
-	context.unchecked.add (context.store->tx_begin_write (), key, info);
+	context.unchecked.put (context.store->tx_begin_write (), info.block->previous (), info);
 }

@@ -746,8 +746,7 @@ public:
 	using iterator = nano::store_iterator<nano::unchecked_key, nano::unchecked_info>;
 
 	virtual void clear (nano::write_transaction const &) = 0;
-	virtual void put (nano::write_transaction const &, nano::unchecked_key const &, nano::unchecked_info const &) = 0;
-	virtual void put (nano::write_transaction const &, nano::hash_or_account const &, std::shared_ptr<nano::block> const &) = 0;
+	virtual void put (nano::write_transaction const &, nano::hash_or_account const & dependency, nano::unchecked_info const &) = 0;
 	std::pair<iterator, iterator> equal_range (nano::transaction const & transaction, nano::block_hash const & dependency);
 	std::pair<iterator, iterator> full_range (nano::transaction const & transaction);
 	std::vector<nano::unchecked_info> get (nano::transaction const &, nano::block_hash const &);
@@ -816,6 +815,7 @@ public:
 	virtual uint64_t account_height (nano::transaction const & transaction_a, nano::block_hash const & hash_a) const = 0;
 };
 
+class unchecked_map;
 /**
  * Store manager
  */
@@ -845,7 +845,9 @@ public:
 	frontier_store & frontier;
 	account_store & account;
 	pending_store & pending;
+private:
 	unchecked_store & unchecked;
+public:
 	online_weight_store & online_weight;
 	pruned_store & pruned;
 	peer_store & peer;
@@ -871,6 +873,8 @@ public:
 	virtual nano::read_transaction tx_begin_read () const = 0;
 
 	virtual std::string vendor_get () const = 0;
+
+	friend class unchecked_map;
 };
 
 std::unique_ptr<nano::store> make_store (nano::logger_mt & logger, boost::filesystem::path const & path, nano::ledger_constants & constants, bool open_read_only = false, bool add_db_postfix = false, nano::rocksdb_config const & rocksdb_config = nano::rocksdb_config{}, nano::txn_tracking_config const & txn_tracking_config_a = nano::txn_tracking_config{}, std::chrono::milliseconds block_processor_batch_max_time_a = std::chrono::milliseconds (5000), nano::lmdb_config const & lmdb_config_a = nano::lmdb_config{}, bool backup_before_upgrade = false);

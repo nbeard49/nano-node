@@ -254,7 +254,7 @@ TEST (confirmation_height, gap_bootstrap)
 		// Confirmation heights should not be updated
 		{
 			auto transaction (node1.store.tx_begin_read ());
-			auto unchecked_count (node1.store.unchecked.count (transaction));
+			auto unchecked_count (node1.unchecked.count (transaction));
 			ASSERT_EQ (unchecked_count, 2);
 
 			nano::confirmation_height_info confirmation_height_info;
@@ -270,7 +270,7 @@ TEST (confirmation_height, gap_bootstrap)
 		// Confirmation height should be unchanged and unchecked should now be 0
 		{
 			auto transaction (node1.store.tx_begin_read ());
-			auto unchecked_count (node1.store.unchecked.count (transaction));
+			auto unchecked_count (node1.unchecked.count (transaction));
 			ASSERT_EQ (unchecked_count, 0);
 
 			nano::confirmation_height_info confirmation_height_info;
@@ -356,7 +356,7 @@ TEST (confirmation_height, gap_live)
 
 		// This should confirm the open block and the source of the receive blocks
 		auto transaction (node->store.tx_begin_read ());
-		auto unchecked_count (node->store.unchecked.count (transaction));
+		auto unchecked_count (node->unchecked.count (transaction));
 		ASSERT_EQ (unchecked_count, 0);
 
 		nano::confirmation_height_info confirmation_height_info;

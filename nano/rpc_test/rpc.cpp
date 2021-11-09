@@ -5067,12 +5067,12 @@ TEST (rpc, unchecked_clear)
 	node->block_processor.flush ();
 	boost::property_tree::ptree request;
 	{
-		ASSERT_EQ (node->store.unchecked.count (node->store.tx_begin_read ()), 1);
+		ASSERT_EQ (node->unchecked.count (node->store.tx_begin_read ()), 1);
 	}
 	request.put ("action", "unchecked_clear");
 	auto response (wait_response (system, rpc, request));
 
-	ASSERT_TIMELY (10s, node->store.unchecked.count (node->store.tx_begin_read ()) == 0);
+	ASSERT_TIMELY (10s, node->unchecked.count (node->store.tx_begin_read ()) == 0);
 }
 
 TEST (rpc, unopened)

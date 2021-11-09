@@ -3317,7 +3317,7 @@ TEST (node, block_processor_signatures)
 	// Invalid signature to unchecked
 	{
 		auto transaction (node1.store.tx_begin_write ());
-		node1.store.unchecked.put (transaction, send5->previous (), send5);
+		node1.unchecked.put (transaction, send5->previous (), nano::unchecked_info{ send5 });
 	}
 	auto receive1 = builder.make_block ()
 					.account (key1.pub)
@@ -3672,27 +3672,27 @@ TEST (node, unchecked_cleanup)
 	node.config.unchecked_cutoff_time = std::chrono::seconds (2);
 	{
 		auto transaction (node.store.tx_begin_read ());
-		auto unchecked_count (node.store.unchecked.count (transaction));
+		auto unchecked_count (node.unchecked.count (transaction));
 		ASSERT_EQ (unchecked_count, 1);
-		ASSERT_EQ (unchecked_count, node.store.unchecked.count (transaction));
+		ASSERT_EQ (unchecked_count, node.unchecked.count (transaction));
 	}
 	std::this_thread::sleep_for (std::chrono::seconds (1));
 	node.unchecked_cleanup ();
 	ASSERT_TRUE (node.network.publish_filter.apply (bytes.data (), bytes.size ()));
 	{
 		auto transaction (node.store.tx_begin_read ());
-		auto unchecked_count (node.store.unchecked.count (transaction));
+		auto unchecked_count (node.unchecked.count (transaction));
 		ASSERT_EQ (unchecked_count, 1);
-		ASSERT_EQ (unchecked_count, node.store.unchecked.count (transaction));
+		ASSERT_EQ (unchecked_count, node.unchecked.count (transaction));
 	}
 	std::this_thread::sleep_for (std::chrono::seconds (2));
 	node.unchecked_cleanup ();
 	ASSERT_FALSE (node.network.publish_filter.apply (bytes.data (), bytes.size ()));
 	{
 		auto transaction (node.store.tx_begin_read ());
-		auto unchecked_count (node.store.unchecked.count (transaction));
+		auto unchecked_count (node.unchecked.count (transaction));
 		ASSERT_EQ (unchecked_count, 0);
-		ASSERT_EQ (unchecked_count, node.store.unchecked.count (transaction));
+		ASSERT_EQ (unchecked_count, node.unchecked.count (transaction));
 	}
 }
 

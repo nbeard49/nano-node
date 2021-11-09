@@ -381,8 +381,7 @@ nano::process_return nano::block_processor::process_one (nano::write_transaction
 			{
 				info_a.modified = nano::seconds_since_epoch ();
 			}
-			nano::unchecked_key unchecked_key (block->previous (), hash);
-			node.unchecked.add (transaction_a, unchecked_key, info_a);
+			node.unchecked.put (transaction_a, block->previous (), info_a);
 			events_a.events.emplace_back ([this, hash] (nano::transaction const & /* unused */) { this->node.gap_cache.add (hash); });
 			node.stats.inc (nano::stat::type::ledger, nano::stat::detail::gap_previous);
 			break;
@@ -398,8 +397,7 @@ nano::process_return nano::block_processor::process_one (nano::write_transaction
 			{
 				info_a.modified = nano::seconds_since_epoch ();
 			}
-			nano::unchecked_key unchecked_key (node.ledger.block_source (transaction_a, *(block)), hash);
-			node.unchecked.add (transaction_a, unchecked_key, info_a);
+			node.unchecked.put (transaction_a, node.ledger.block_source (transaction_a, *(block)), info_a);
 			events_a.events.emplace_back ([this, hash] (nano::transaction const & /* unused */) { this->node.gap_cache.add (hash); });
 			node.stats.inc (nano::stat::type::ledger, nano::stat::detail::gap_source);
 			break;
@@ -415,8 +413,7 @@ nano::process_return nano::block_processor::process_one (nano::write_transaction
 			{
 				info_a.modified = nano::seconds_since_epoch ();
 			}
-			nano::unchecked_key unchecked_key (block->account (), hash); // Specific unchecked key starting with epoch open block account public key
-			node.unchecked.add (transaction_a, unchecked_key, info_a);
+			node.unchecked.put (transaction_a, block->account (), info_a); // Specific unchecked key starting with epoch open block account public key
 			node.stats.inc (nano::stat::type::ledger, nano::stat::detail::gap_source);
 			break;
 		}
@@ -514,12 +511,12 @@ nano::process_return nano::block_processor::process_one (nano::write_transaction
 
 void nano::block_processor::queue_unchecked (nano::write_transaction const & transaction_a, nano::hash_or_account const & hash_or_account_a)
 {
-	auto unchecked_blocks (node.store.unchecked.get (transaction_a, hash_or_account_a.hash));
+	auto unchecked_blocks (node.unchecked.get (transaction_a, hash_or_account_a.hash));
 	for (auto & info : unchecked_blocks)
 	{
 		if (!node.flags.disable_block_processor_unchecked_deletion)
 		{
-			node.store.unchecked.del (transaction_a, nano::unchecked_key (hash_or_account_a, info.block->hash ()));
+			node.unchecked.del (transaction_a, nano::unchecked_key (hash_or_account_a, info.block->hash ()));
 		}
 		add (info);
 	}

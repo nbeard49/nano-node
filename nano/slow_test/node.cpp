@@ -405,10 +405,10 @@ TEST (store, unchecked_load)
 	for (auto i (0); i < num_unchecked; ++i)
 	{
 		auto transaction (node.store.tx_begin_write ());
-		node.store.unchecked.put (transaction, i, block);
+		node.unchecked.put (transaction, i, nano::unchecked_info{ block });
 	}
 	auto transaction (node.store.tx_begin_read ());
-	ASSERT_EQ (num_unchecked, node.store.unchecked.count (transaction));
+	ASSERT_EQ (num_unchecked, node.unchecked.count (transaction));
 }
 
 TEST (store, vote_load)
