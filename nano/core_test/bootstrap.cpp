@@ -918,6 +918,7 @@ TEST (bootstrap_processor, lazy_unclear_state_link)
 	// Check processed blocks
 	ASSERT_TIMELY (10s, !node2->bootstrap_initiator.in_progress ());
 	node2->block_processor.flush ();
+	node2->unchecked.flush ();
 	ASSERT_TRUE (node2->ledger.block_or_pruned_exists (send1->hash ()));
 	ASSERT_TRUE (node2->ledger.block_or_pruned_exists (send2->hash ()));
 	ASSERT_TRUE (node2->ledger.block_or_pruned_exists (open->hash ()));

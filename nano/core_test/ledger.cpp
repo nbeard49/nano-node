@@ -2470,6 +2470,7 @@ TEST (ledger, epoch_open_pending)
 	ASSERT_EQ (nano::signature_verification::valid_epoch, process_result.verified);
 	node1.block_processor.add (epoch_open);
 	node1.block_processor.flush ();
+	node1.unchecked.flush ();
 	ASSERT_FALSE (node1.ledger.block_or_pruned_exists (epoch_open->hash ()));
 	// Open block should be inserted into unchecked
 	auto blocks (node1.unchecked.get (node1.store.tx_begin_read (), nano::hash_or_account (epoch_open->account ()).hash));
@@ -2488,7 +2489,7 @@ TEST (ledger, epoch_open_pending)
 				 .build_shared ();
 	node1.block_processor.add (send1);
 	node1.block_processor.flush ();
-	ASSERT_TRUE (node1.ledger.block_or_pruned_exists (epoch_open->hash ()));
+	ASSERT_TIMELY (5s, node1.ledger.block_or_pruned_exists (epoch_open->hash ()));
 }
 
 TEST (ledger, block_hash_account_conflict)
@@ -2655,6 +2656,7 @@ TEST (ledger, unchecked_epoch)
 	node1.work_generate_blocking (*epoch1);
 	node1.block_processor.add (epoch1);
 	node1.block_processor.flush ();
+	node1.unchecked.flush ();
 	{
 		auto transaction (node1.store.tx_begin_read ());
 		auto unchecked_count (node1.unchecked.count (transaction));
@@ -2667,9 +2669,9 @@ TEST (ledger, unchecked_epoch)
 	node1.block_processor.add (send1);
 	node1.block_processor.add (open1);
 	node1.block_processor.flush ();
+	ASSERT_TIMELY (5s, node1.store.block.exists (node1.store.tx_begin_read (), epoch1->hash ()));
 	{
-		auto transaction (node1.store.tx_begin_read ());
-		ASSERT_TRUE (node1.store.block.exists (transaction, epoch1->hash ()));
+		auto transaction = node1.store.tx_begin_read ();
 		auto unchecked_count (node1.unchecked.count (transaction));
 		ASSERT_EQ (unchecked_count, 0);
 		ASSERT_EQ (unchecked_count, node1.unchecked.count (transaction));
@@ -2699,6 +2701,7 @@ TEST (ledger, unchecked_epoch_invalid)
 	node1.block_processor.add (epoch1);
 	node1.block_processor.add (epoch2);
 	node1.block_processor.flush ();
+	node1.unchecked.flush ();
 	{
 		auto transaction (node1.store.tx_begin_read ());
 		auto unchecked_count (node1.unchecked.count (transaction));
@@ -2712,10 +2715,10 @@ TEST (ledger, unchecked_epoch_invalid)
 	node1.block_processor.add (send1);
 	node1.block_processor.add (open1);
 	node1.block_processor.flush ();
+	ASSERT_TIMELY (5s, node1.store.block.exists (node1.store.tx_begin_read (), epoch2->hash ()));
 	{
-		auto transaction (node1.store.tx_begin_read ());
+		auto transaction = node1.store.tx_begin_read ();
 		ASSERT_FALSE (node1.store.block.exists (transaction, epoch1->hash ()));
-		ASSERT_TRUE (node1.store.block.exists (transaction, epoch2->hash ()));
 		ASSERT_TRUE (node1.active.empty ());
 		auto unchecked_count (node1.unchecked.count (transaction));
 		ASSERT_EQ (unchecked_count, 0);
@@ -2748,6 +2751,7 @@ TEST (ledger, unchecked_open)
 	node1.block_processor.add (open1);
 	node1.block_processor.add (open2);
 	node1.block_processor.flush ();
+	node1.unchecked.flush ();
 	{
 		auto transaction (node1.store.tx_begin_read ());
 		auto unchecked_count (node1.unchecked.count (transaction));
@@ -2759,13 +2763,8 @@ TEST (ledger, unchecked_open)
 	}
 	node1.block_processor.add (send1);
 	node1.block_processor.flush ();
-	{
-		auto transaction (node1.store.tx_begin_read ());
-		ASSERT_TRUE (node1.store.block.exists (transaction, open1->hash ()));
-		auto unchecked_count (node1.unchecked.count (transaction));
-		ASSERT_EQ (unchecked_count, 0);
-		ASSERT_EQ (unchecked_count, node1.unchecked.count (transaction));
-	}
+	ASSERT_TIMELY (5s, node1.store.block.exists (node1.store.tx_begin_read (), open1->hash ()));
+	ASSERT_EQ (0, node1.unchecked.count (node1.store.tx_begin_read ()));
 }
 
 TEST (ledger, unchecked_receive)
@@ -2784,37 +2783,30 @@ TEST (ledger, unchecked_receive)
 	node1.block_processor.add (send1);
 	node1.block_processor.add (receive1);
 	node1.block_processor.flush ();
+	node1.unchecked.flush ();
 	// Previous block for receive1 is unknown, signature cannot be validated
 	{
 		auto transaction (node1.store.tx_begin_read ());
-		auto unchecked_count (node1.unchecked.count (transaction));
-		ASSERT_EQ (unchecked_count, 1);
-		ASSERT_EQ (unchecked_count, node1.unchecked.count (transaction));
+		ASSERT_EQ (1, node1.unchecked.count (transaction));
 		auto blocks (node1.unchecked.get (transaction, receive1->previous ()));
 		ASSERT_EQ (blocks.size (), 1);
 		ASSERT_EQ (blocks[0].verified, nano::signature_verification::unknown);
 	}
 	node1.block_processor.add (open1);
 	node1.block_processor.flush ();
+	node1.unchecked.flush ();
+	ASSERT_TIMELY (5s, node1.unchecked.count (node1.store.tx_begin_read ()) == 1);
 	// Previous block for receive1 is known, signature was validated
 	{
-		auto transaction (node1.store.tx_begin_read ());
-		auto unchecked_count (node1.unchecked.count (transaction));
-		ASSERT_EQ (unchecked_count, 1);
-		ASSERT_EQ (unchecked_count, node1.unchecked.count (transaction));
+		auto transaction = node1.store.tx_begin_read ();
 		auto blocks (node1.unchecked.get (transaction, receive1->source ()));
 		ASSERT_EQ (blocks.size (), 1);
 		ASSERT_EQ (blocks[0].verified, nano::signature_verification::valid);
 	}
 	node1.block_processor.add (send2);
 	node1.block_processor.flush ();
-	{
-		auto transaction (node1.store.tx_begin_read ());
-		ASSERT_TRUE (node1.store.block.exists (transaction, receive1->hash ()));
-		auto unchecked_count (node1.unchecked.count (transaction));
-		ASSERT_EQ (unchecked_count, 0);
-		ASSERT_EQ (unchecked_count, node1.unchecked.count (transaction));
-	}
+	ASSERT_TIMELY (5s, node1.store.block.exists (node1.store.tx_begin_read (), receive1->hash ()));
+	ASSERT_EQ (0, node1.unchecked.count (node1.store.tx_begin_read ()));
 }
 
 TEST (ledger, confirmation_height_not_updated)
@@ -3623,7 +3615,7 @@ TEST (ledger, migrate_lmdb_to_rocksdb)
 	boost::asio::ip::address_v6 address (boost::asio::ip::make_address_v6 ("::ffff:127.0.0.1"));
 	uint16_t port = 100;
 	nano::mdb_store store (logger, path / "data.ldb", nano::dev::constants);
-	nano::unchecked_map unchecked{ store };
+	nano::unchecked_map unchecked{ store, false };
 	nano::stat stats;
 	nano::ledger ledger (store, stats, nano::dev::constants);
 	nano::work_pool pool{ nano::dev::network_params.network, std::numeric_limits<unsigned>::max () };
@@ -3665,7 +3657,7 @@ TEST (ledger, migrate_lmdb_to_rocksdb)
 	ASSERT_FALSE (error);
 
 	nano::rocksdb_store rocksdb_store (logger, path / "rocksdb", nano::dev::constants);
-	nano::unchecked_map rocksdb_unchecked{ rocksdb_store };
+	nano::unchecked_map rocksdb_unchecked{ rocksdb_store, false };
 	auto rocksdb_transaction (rocksdb_store.tx_begin_read ());
 
 	nano::pending_info pending_info;

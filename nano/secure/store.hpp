@@ -845,8 +845,10 @@ public:
 	frontier_store & frontier;
 	account_store & account;
 	pending_store & pending;
+
 private:
 	unchecked_store & unchecked;
+
 public:
 	online_weight_store & online_weight;
 	pruned_store & pruned;

@@ -327,6 +327,14 @@ struct hash<::nano::uint256_t>
 	}
 };
 template <>
+struct hash<::nano::hash_or_account>
+{
+	size_t operator() (::nano::hash_or_account const & item) const
+	{
+		return hash<::nano::block_hash> () (item.hash);
+	}
+};
+template <>
 struct hash<::nano::uint512_union>
 {
 	size_t operator() (::nano::uint512_union const & data_a) const

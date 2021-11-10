@@ -5008,6 +5008,7 @@ TEST (rpc, unchecked)
 	node->process_active (open);
 	node->process_active (open2);
 	node->block_processor.flush ();
+	node->unchecked.flush ();
 	boost::property_tree::ptree request;
 	request.put ("action", "unchecked");
 	request.put ("count", 2);
@@ -5037,6 +5038,7 @@ TEST (rpc, unchecked_get)
 	auto open (std::make_shared<nano::state_block> (key.pub, 0, key.pub, 1, key.pub, key.prv, key.pub, *system.work.generate (key.pub)));
 	node->process_active (open);
 	node->block_processor.flush ();
+	node->unchecked.flush ();
 	boost::property_tree::ptree request;
 	request.put ("action", "unchecked_get");
 	request.put ("hash", open->hash ().to_string ());
@@ -5067,11 +5069,13 @@ TEST (rpc, unchecked_clear)
 	node->block_processor.flush ();
 	boost::property_tree::ptree request;
 	{
+		node->unchecked.flush ();
 		ASSERT_EQ (node->unchecked.count (node->store.tx_begin_read ()), 1);
 	}
 	request.put ("action", "unchecked_clear");
 	auto response (wait_response (system, rpc, request));
 
+	node->unchecked.flush ();
 	ASSERT_TIMELY (10s, node->unchecked.count (node->store.tx_begin_read ()) == 0);
 }
 
@@ -5862,8 +5866,11 @@ TEST (rpc, account_lazy_start)
 	// Check processed blocks
 	ASSERT_TIMELY (10s, !node2->bootstrap_initiator.in_progress ());
 	node2->block_processor.flush ();
-	ASSERT_TRUE (node2->ledger.block_or_pruned_exists (send1->hash ()));
-	ASSERT_TRUE (node2->ledger.block_or_pruned_exists (open->hash ()));
+	node2->unchecked.flush ();
+	// needs timed assert because the writing (put) operation is done by a different
+	// thread, it might not get done before DB get operation.
+	ASSERT_TIMELY (10s, node2->ledger.block_or_pruned_exists (send1->hash ()));
+	ASSERT_TIMELY (10s, node2->ledger.block_or_pruned_exists (open->hash ()));
 }
 
 TEST (rpc, receive)

@@ -250,6 +250,7 @@ TEST (confirmation_height, gap_bootstrap)
 		// Receive 2 comes in on the live network, however the chain has not been finished so it gets added to unchecked
 		node1.process_active (receive2);
 		node1.block_processor.flush ();
+		node1.unchecked.flush ();
 
 		// Confirmation heights should not be updated
 		{
@@ -267,12 +268,10 @@ TEST (confirmation_height, gap_bootstrap)
 		node1.block_processor.add (open1);
 		node1.block_processor.flush ();
 
+		ASSERT_TIMELY (5s, node1.unchecked.count (node1.store.tx_begin_read ()) == 0);
 		// Confirmation height should be unchanged and unchecked should now be 0
 		{
-			auto transaction (node1.store.tx_begin_read ());
-			auto unchecked_count (node1.unchecked.count (transaction));
-			ASSERT_EQ (unchecked_count, 0);
-
+			auto transaction = node1.store.tx_begin_read ();
 			nano::confirmation_height_info confirmation_height_info;
 			ASSERT_FALSE (node1.store.confirmation_height.get (transaction, nano::dev::genesis_key.pub, confirmation_height_info));
 			ASSERT_EQ (1, confirmation_height_info.height);

@@ -3317,7 +3317,7 @@ TEST (node, block_processor_signatures)
 	// Invalid signature to unchecked
 	{
 		auto transaction (node1.store.tx_begin_write ());
-		node1.unchecked.put (transaction, send5->previous (), nano::unchecked_info{ send5 });
+		node1.unchecked.put (send5->previous (), nano::unchecked_info{ send5 });
 	}
 	auto receive1 = builder.make_block ()
 					.account (key1.pub)
@@ -3669,6 +3669,7 @@ TEST (node, unchecked_cleanup)
 	ASSERT_FALSE (node.network.publish_filter.apply (bytes.data (), bytes.size ()));
 	node.process_active (open);
 	node.block_processor.flush ();
+	node.unchecked.flush ();
 	node.config.unchecked_cutoff_time = std::chrono::seconds (2);
 	{
 		auto transaction (node.store.tx_begin_read ());
